@@ -47,7 +47,7 @@ class Template(object):
       assert not m.dead
 
       def A(x, y, z):
-        events.append('%s/%s/%s' % (x, y, z))
+        events.append(f'{x}/{y}/{z}')
         events.append(m.switch('C'))
 
       g = self.greenlet(A)
@@ -116,7 +116,7 @@ class Template(object):
           items.append(gc.switch())
         else:
           items.append(gc.switch(name))
-        items.append(next[name].switch('+' + name))
+        items.append(next[name].switch(f'+{name}'))
       g1 = self.greenlet(lambda: Switcher('g1'))
       g2 = self.greenlet(lambda: Switcher('g2'))
       g3 = self.greenlet(lambda: Switcher('g3'))

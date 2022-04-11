@@ -7,6 +7,7 @@ Please note that select(2) is inherently slow. Please see FAQ entry Q14 in
 README.txt .
 """
 
+
 import sys
 
 from syncless import coio
@@ -19,11 +20,11 @@ if __name__ == '__main__':
     # [sys.stdout, sys.stderr].
     print >>sys.stderr, coio.select(
         [sys.stdin], [sys.stderr, sys.stdout], [], 3)
-  elif len(sys.argv) > 1 and sys.argv[1] == 'b':
+  elif sys.argv[1] == 'b':
     print >>sys.stderr, 'B'
     # Times out after 3 seconds.
     print >>sys.stderr, coio.select([sys.stdin], [], [], 3)
-  elif len(sys.argv) > 1 and sys.argv[1] == 'c':
+  elif sys.argv[1] == 'c':
     print >>sys.stderr, 'C'
     # Waits indefinitely.
     print >>sys.stderr, coio.select([sys.stdin], [], [], None)

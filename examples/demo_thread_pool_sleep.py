@@ -28,7 +28,7 @@ def ProgressReporter(delta_sec):
 
 if __name__ == '__main__':
   stackless.tasklet(ProgressReporter)(0.05)
-  thread_pool_obj = coio.thread_pool(4 - bool(len(sys.argv) > 1))
+  thread_pool_obj = coio.thread_pool(4 - (len(sys.argv) > 1))
   stackless.tasklet(thread_pool_obj)(time.sleep, 2)
   stackless.tasklet(thread_pool_obj)(time.sleep, 2)
   stackless.tasklet(thread_pool_obj)(time.sleep, 2)

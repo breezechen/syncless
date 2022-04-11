@@ -46,8 +46,7 @@ def RunWorker(sock_in, sock_out, max_size):
     f_out.write(data)
     f_out.flush()
     while sock_in and coio.select([sock_in], (), (), 0)[0]:
-      data = sock_in.recv(8192)
-      if data:
+      if data := sock_in.recv(8192):
         byte_count += len(data)
         line_count += data.count('\n')
       else:
@@ -70,8 +69,7 @@ class ForkReinitTest(unittest.TestCase):
 
   def testWithoutPatch(self):
     a, b = coio.socketpair()
-    pid = unpatched_fork()
-    if pid:  # Parent.
+    if pid := unpatched_fork():
       try:
         a = a.dup()
         b = b.dup()
@@ -95,8 +93,7 @@ class ForkReinitTest(unittest.TestCase):
     patch.patch_os()
     assert os.fork is not unpatched_fork
     a, b = coio.socketpair()
-    pid = os.fork()
-    if pid:  # Parent.
+    if pid := os.fork():
       try:
         a = a.dup()
         b = b.dup()

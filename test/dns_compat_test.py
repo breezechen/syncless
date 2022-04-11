@@ -13,10 +13,10 @@ import unittest
 #    print syncless.coio.dns_resolve_reverse('2001:6b0:1:ea:202:a5ff:fecd:13a6')
 #: <dnsresult t=2, ttl=3446 values=['igloo.stacken.kth.se'] at 0x824226c>
 
-ERR_NODATA = set([1])
-ERR_ADDRFAMILY = set([2])
-ERR_HOST_NOT_FOUND = set([3])
-ERR_NONAME = set([4])
+ERR_NODATA = {1}
+ERR_ADDRFAMILY = {2}
+ERR_HOST_NOT_FOUND = {3}
+ERR_NONAME = {4}
 
 
 RESOLVE_IPV4_RESULT = {

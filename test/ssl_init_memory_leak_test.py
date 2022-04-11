@@ -25,7 +25,7 @@ class SslInitMemoryLeakTest(unittest.TestCase):
     gc.disable()
     gc.collect()
     count0 = gc.get_count()[0]
-    for i in xrange(1000):
+    for _ in xrange(1000):
       sslsocket_impl(sock)
     count1 = gc.get_count()[0]
     self.assertTrue(count1 >= count0)

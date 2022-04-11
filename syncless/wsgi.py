@@ -125,6 +125,7 @@ TODO(pts): Validate this implementation with wsgiref.validate.
 TODO(pts): Write access.log like BaseHTTPServer and CherryPy
 """
 
+
 __author__ = 'pts@fazekas.hu (Peter Szabo)'
 
 import errno
@@ -149,12 +150,31 @@ from syncless import ssl_util
 HTTP_REQUEST_METHODS_WITH_BODY = ['POST', 'PUT', 'OPTIONS', 'TRACE']
 """HTTP request methods which can have a body (Content-Length)."""
 
-COMMA_SEPARATED_REQHEAD = set(['ACCEPT', 'ACCEPT_CHARSET', 'ACCEPT_ENCODING',
-    'ACCEPT_LANGUAGE', 'ACCEPT_RANGES', 'ALLOW', 'CACHE_CONTROL',
-    'CONNECTION', 'CONTENT_ENCODING', 'CONTENT_LANGUAGE', 'EXPECT',
-    'IF_MATCH', 'IF_NONE_MATCH', 'PRAGMA', 'PROXY_AUTHENTICATE', 'TE',
-    'TRAILER', 'TRANSFER_ENCODING', 'UPGRADE', 'VARY', 'VIA', 'WARNING',
-    'WWW_AUTHENTICATE'])
+COMMA_SEPARATED_REQHEAD = {
+    'ACCEPT',
+    'ACCEPT_CHARSET',
+    'ACCEPT_ENCODING',
+    'ACCEPT_LANGUAGE',
+    'ACCEPT_RANGES',
+    'ALLOW',
+    'CACHE_CONTROL',
+    'CONNECTION',
+    'CONTENT_ENCODING',
+    'CONTENT_LANGUAGE',
+    'EXPECT',
+    'IF_MATCH',
+    'IF_NONE_MATCH',
+    'PRAGMA',
+    'PROXY_AUTHENTICATE',
+    'TE',
+    'TRAILER',
+    'TRANSFER_ENCODING',
+    'UPGRADE',
+    'VARY',
+    'VIA',
+    'WARNING',
+    'WWW_AUTHENTICATE',
+}
 """HTTP request headers which will be joined by comma + space.
 
 The list was taken from cherrypy.wsgiserver.comma_separated_headers.
@@ -267,10 +287,7 @@ def GetHttpDate(at):
 
 def RespondWithBad(status, date, server_software, sockfile, reason):
   status_str = HTTP_STATUS_STRINGS[status]
-  if reason:
-    msg = '%s: %s' % (status_str, reason)
-  else:
-    msg = status_str
+  msg = f'{status_str}: {reason}' if reason else status_str
   # TODO(pts): Add Server: and Date:
   sockfile.write('HTTP/1.0 %s %s\r\n'
                  'Server: %s\r\n'
@@ -283,9 +300,7 @@ def RespondWithBad(status, date, server_software, sockfile, reason):
 
 
 def ReportAppException(exc_info, which='app'):
-  exc = 'error calling WSGI %s: %s.%s: %s' % (
-      which, exc_info[1].__class__.__module__, exc_info[1].__class__.__name__,
-      exc_info[1])
+  exc = f'error calling WSGI {which}: {exc_info[1].__class__.__module__}.{exc_info[1].__class__.__name__}: {exc_info[1]}'
   if logging.root.level <= DEBUG:
     exc_line1 = exc
     exc = traceback.format_exception(
@@ -327,8 +342,7 @@ def ConsumerWorker(items, is_debug):
 def PrependIterator(value, iterator):
   """Iterator which yields value, then all by iterator."""
   yield value
-  for item in iterator:
-    yield item
+  yield from iterator
 
 
 def SendWildcardPolicyFile(env, start_response):
@@ -444,7 +458,7 @@ class WebSocket(object):
     elif isinstance(msg, unicode):
       self._rwfile.write('\x00%s\xff' % msg.encode('UTF-8'))
     else:
-      raise TypeError('expected WebSocket message, got %s' % type(msg))
+      raise TypeError(f'expected WebSocket message, got {type(msg)}')
 
 
 def WsgiWorker(sock, peer_name, wsgi_application, default_env, date,
@@ -700,13 +714,9 @@ def WsgiWorker(sock, peer_name, wsgi_application, default_env, date,
           # This is non-standard behavior, because handling WebSocket
           # connections is not specified in the WSGI specification.
           ws_http_version = max(http_version, 'HTTP/1.1')
-          origin = env.get('HTTP_ORIGIN') or 'http://%s' % env['HTTP_HOST']
-          if env.get('wsgi.url_scheme') == 'https':
-            ws_protocol = 'wss'
-          else:
-            ws_protocol = 'ws'
-          location = '%s://%s%s' % (
-              ws_protocol, env['HTTP_HOST'], env['PATH_INFO'])
+          origin = env.get('HTTP_ORIGIN') or f"http://{env['HTTP_HOST']}"
+          ws_protocol = 'wss' if env.get('wsgi.url_scheme') == 'https' else 'ws'
+          location = f"{ws_protocol}://{env['HTTP_HOST']}{env['PATH_INFO']}"
           key1 = env.get('HTTP_SEC_WEBSOCKET_KEY1')  # '2\\;!0=9"  8915i  6Fr\\2 S0 p'
           key2 = env.get('HTTP_SEC_WEBSOCKET_KEY2')  # "2'_a 7  729  =$ec,0P  1I 13*  R0"
           if key1 and key2:
@@ -787,10 +797,7 @@ def WsgiWorker(sock, peer_name, wsgi_application, default_env, date,
               sockfile.write('%s: %s\r\n' % (key_capitalized, value))
 
         # Don't flush yet.
-        if is_not_head:
-          return WriteNotHead
-        else:
-          return WriteHead
+        return WriteNotHead if is_not_head else WriteHead
 
       # TODO(pts): Handle application-level exceptions here.
       try:
@@ -1264,8 +1271,7 @@ class FakeBaseHttpWFile(object):
       write_buf.append(data)
     else:
       assert data.endswith('\r\n'), [write_buf, data]
-      data = data.rstrip('\n\r')
-      if data:
+      if data := data.rstrip('\n\r'):
         write_buf.append(data)  # Buffer status and headers.
       else:
         assert len(write_buf) > 2  # HTTP/..., Server:, Date:
@@ -1287,12 +1293,11 @@ class FakeBaseHttpWFile(object):
     self.closed = True
 
   def flush(self):
-    if self.wsgi_write_callback:
-      if self.write_buf:
-        data = ''.join(self.write_buf)
-        del self.write_buf[:]
-        if data:
-          self.wsgi_write_callback(data)
+    if self.wsgi_write_callback and self.write_buf:
+      data = ''.join(self.write_buf)
+      del self.write_buf[:]
+      if data:
+        self.wsgi_write_callback(data)
 
 
 class ConstantReadLineInputStream(object):
@@ -1305,10 +1310,7 @@ class ConstantReadLineInputStream(object):
     self.body_rfile = body_rfile
 
   def readline(self):
-    if self.lines_rev:
-      return self.lines_rev.pop()
-    else:
-      return self.body_rfile.readline()
+    return self.lines_rev.pop() if self.lines_rev else self.body_rfile.readline()
 
   def read(self, size):
     assert not self.lines_rev
@@ -1378,9 +1380,7 @@ def HttpRequestFromEnv(env, connection=None):
           'CONTENT_LENGTH', env.get('HTTP_CONTENT_LENGTH'))
       if content_length is not None:
         output.append('Content-Length: %s\r\n' % content_length)
-      # It should be CONTENT_TYPE, not HTTP_CONTENT_TYPE.
-      content_type = env.get('CONTENT_TYPE', env.get('HTTP_CONTENT_TYPE'))
-      if content_type:
+      if content_type := env.get('CONTENT_TYPE', env.get('HTTP_CONTENT_TYPE')):
         output.append('Content-Type: %s\r\n' % content_type)
     if connection is not None:
       output.append('Connection: %s\r\n' % connection)
@@ -1421,9 +1421,9 @@ def CanBeCherryPyApp(app):
   """Return True if app is a CherryPy app class or object."""
   # Since CherryPy applications can be of any type, the only way for us to
   # detect such an application is to look for an exposed method (or class?).
-  if isinstance(app, type) or isinstance(app, types.ClassType):
+  if isinstance(app, (type, types.ClassType)):
     pass
-  elif isinstance(app, object) or isinstance(app, types.InstanceType):
+  elif isinstance(app, (object, types.InstanceType)):
     app = type(app)
   else:
     return False
@@ -1461,27 +1461,25 @@ def RunHttpServer(app, server_address=None, listen_queue_size=100):
     assert callable(wsgi_application)
     if server_address is None:
       server_address = ('127.0.0.1', 6666)
-  elif (not callable(app) and
-      hasattr(app, 'handle') and hasattr(app, 'request') and
-      hasattr(app, 'run') and hasattr(app, 'wsgifunc') and
-      hasattr(app, 'cgirun') and hasattr(app, 'handle')):
+  elif (not callable(app) and hasattr(app, 'handle') and hasattr(app, 'request')
+        and hasattr(app, 'run') and hasattr(app, 'wsgifunc')
+        and hasattr(app, 'cgirun')):
     logging.info('running (web.py) web.application')
     wsgi_application = app.wsgifunc()
     if server_address is None:
       server_address = ('0.0.0.0', 8080)  # (web.py) default
   elif CanBeCherryPyApp(app):
     logging.info('running CherryPy application')
-    if isinstance(app, type) or isinstance(app, types.ClassType):
+    if isinstance(app, (type, types.ClassType)):
       app = app()
     import cherrypy
     # See http://www.cherrypy.org/wiki/WSGI
     wsgi_application = cherrypy.tree.mount(app, '/')
     if server_address is None:
       server_address = ('127.0.0.1', 8080)  # CherryPy default
-    # TODO(pts): Use CherryPy config files.
-  elif (BaseHTTPServer and
-        (isinstance(app, type) or isinstance(app, types.ClassType)) and
-        issubclass(app, BaseHTTPServer.BaseHTTPRequestHandler)):
+      # TODO(pts): Use CherryPy config files.
+  elif (BaseHTTPServer and isinstance(app, (type, types.ClassType))
+        and issubclass(app, BaseHTTPServer.BaseHTTPRequestHandler)):
     logging.info('running BaseHTTPRequestHandler application')
     wsgi_application = BaseHttpWsgiWrapper(app)
     if server_address is None:
@@ -1494,20 +1492,21 @@ def RunHttpServer(app, server_address=None, listen_queue_size=100):
 
     # Check that app accepts the proper number of arguments.
     has_self = False
-    if isinstance(app, type) or isinstance(app, types.ClassType):
+    if isinstance(app, (type, types.ClassType)):
       func = getattr(app, '__init__', None)
       assert isinstance(func, types.UnboundMethodType)
       func = func.im_func
       has_self = True
-    elif isinstance(app, types.FunctionType):
+    elif isinstance(
+          app,
+          types.FunctionType) or not isinstance(app,
+                                                (object, types.InstanceType)):
       func = app
-    elif isinstance(app, object) or isinstance(app, types.InstanceType):
+    else:
       func = getattr(app, '__call__', None)
       assert isinstance(func, types.MethodType)
       func = func.im_func
       has_self = True
-    else:
-      func = app
     expected_argcount = int(has_self) + 2  # self, env, start_response
     assert func.func_code.co_argcount == expected_argcount, (
         'invalid argument count -- maybe not a WSGI application: %r' % app)

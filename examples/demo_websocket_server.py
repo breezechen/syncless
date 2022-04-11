@@ -102,7 +102,7 @@ def WsgiApp(env, start_response):
 </body></html>""",)
 
   start_response('404 Not Found', [('Content-Type', 'text/plain')])
-  return 'not found: %s' % env['PATH_INFO']
+  return f"not found: {env['PATH_INFO']}"
 
 
 if __name__ == '__main__':

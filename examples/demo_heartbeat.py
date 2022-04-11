@@ -26,21 +26,22 @@ def Writer(timestamps, chan, sock):
 
 
 def Sleeper(timestamps, write_channel, interval):
-  if timestamps[0] is not None:
-    sleep_amount = min(timestamps) + interval - time.time()
-    while True:
-      if sleep_amount > 0:
-        coio.sleep(sleep_amount)
-        if timestamps[0] is None:
-          break
-        sleep_amount = min(timestamps) + interval - time.time()
-        if sleep_amount > 0:
-          continue
-      now_ts = time.time()
-      write_channel.send('heart-beat\r\n')
-      for i in xrange(len(timestamps)):
-        timestamps[i] = max(timestamps[i], now_ts)
+  if timestamps[0] is None:
+    return
+  sleep_amount = min(timestamps) + interval - time.time()
+  while True:
+    if sleep_amount > 0:
+      coio.sleep(sleep_amount)
+      if timestamps[0] is None:
+        break
       sleep_amount = min(timestamps) + interval - time.time()
+    if sleep_amount > 0:
+      continue
+    now_ts = time.time()
+    write_channel.send('heart-beat\r\n')
+    for i in xrange(len(timestamps)):
+      timestamps[i] = max(timestamps[i], now_ts)
+    sleep_amount = min(timestamps) + interval - time.time()
 
 
 def Worker(sock, addr):

@@ -95,8 +95,7 @@ class ReadBuffer(object):
     if not self.buf:
       return ''
     retval = self.buf[self.bufb:]
-    if self.bufb > 0:
-      self.bufb = 0
+    self.bufb = min(self.bufb, 0)
     self.buf = ''
     return retval
 

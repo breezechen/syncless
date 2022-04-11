@@ -108,7 +108,7 @@ def GetSvnPassword(svn_url, svn_user):
   dir_name = os.path.join(
       os.getenv('HOME', '/dev/null'), '.subversion', 'auth', 'svn.simple')
   if not os.path.isdir(dir_name):
-    raise DistutilsError('svn config dir not found: %s' % dir_name)
+    raise DistutilsError(f'svn config dir not found: {dir_name}')
   svn_url_slash = svn_url.rstrip('/') + '/'
   for entry in sorted(os.listdir(dir_name)):
     file_name = os.path.join(dir_name, entry)
@@ -123,7 +123,7 @@ def GetSvnPassword(svn_url, svn_user):
           break
         match = re.match(r'K\s+(\d+)\n\Z', line)
         assert match, 'expected key as K'
-        size = int(match.group(1))
+        size = int(match[1])
         key = f.read(size)
         assert len(key) == size
         line = f.read(1)
@@ -132,7 +132,7 @@ def GetSvnPassword(svn_url, svn_user):
         line = f.readline()
         match = re.match(r'V\s+(\d+)\n\Z', line)
         assert match, 'expected value as V'
-        size = int(match.group(1))
+        size = int(match[1])
         value = f.read(size)
         assert len(value) == size
         line = f.read(1)
@@ -155,8 +155,8 @@ def GetSvnPassword(svn_url, svn_user):
       realm = realm.replace(':443/', '/')
     if svn_url_slash.startswith(realm):
       return h['password']
-  raise DistutilsError('password not found for SVN user %s and URL %s' %
-                       (svn_user, svn_url))
+  raise DistutilsError(
+      f'password not found for SVN user {svn_user} and URL {svn_url}')
 
 class MyUpload(Command):
   """Upload source .tar.gz distributions to Google Code.
@@ -211,10 +211,8 @@ class MyUpload(Command):
       if self.user is not None and user != self.user:
         raise DistutilsError('found svn user %r, got cmdline user %r' %
                              (user, self.user))
-      if self.password is None:
-        password = GetSvnPassword(svn_url, user)
-      else:
-        password = self.password
+      password = (GetSvnPassword(svn_url, user)
+                  if self.password is None else self.password)
     else:
       user = self.user
       password = self.password
@@ -242,26 +240,18 @@ def is_logging_to_tty():
   if not logging.root.handlers:
     logging.basicConfig()
   assert logging.root.handlers
-  for handler in logging.root.handlers:
-    if not (isinstance(handler, logging.StreamHandler) and
-            handler.stream.isatty()):
-      return False
-  return True
+  return all(
+      (isinstance(handler, logging.StreamHandler) and handler.stream.isatty())
+      for handler in logging.root.handlers)
 
 def bold(string, is_tty):
-  if not is_tty:
-    return string
-  return '\033[0;1m%s\033[0m' % string
+  return '\033[0;1m%s\033[0m' % string if is_tty else string
 
 def red(string, is_tty):
-  if not is_tty:
-    return string
-  return '\033[0;1;31m%s\033[0m' % string
+  return '\033[0;1;31m%s\033[0m' % string if is_tty else string
 
 def green(string, is_tty):
-  if not is_tty:
-    return string
-  return '\033[0;1;32m%s\033[0m' % string
+  return '\033[0;1;32m%s\033[0m' % string if is_tty else string
 
 def run_test(test_file, is_tty):
   logging.info('running test: ' + bold(test_file, is_tty))
@@ -319,11 +309,10 @@ def run_tests(test_dir, is_tty):
   test_files = sorted(
       os.path.join(test_dir, entry) for entry in os.listdir(test_dir)
       if entry.endswith('_test.py') and not entry.startswith('.'))
-  tests_failed = []
   start_at = time.time()
-  for test_file in test_files:
-    if not run_test(test_file, is_tty):
-      tests_failed.append(test_file)
+  tests_failed = [
+      test_file for test_file in test_files if not run_test(test_file, is_tty)
+  ]
   duration = time.time() - start_at
   if tests_failed:
     logging.info('tests failed: ' + ' '.join(tests_failed))
@@ -348,7 +337,7 @@ class MyTest(Command):
   def run(self):
     logging.BASIC_FORMAT = '[%(created)f] %(levelname)s %(message)s'
     logging.root.setLevel(logging.DEBUG)
-    logging.info('running tests under interpreter: ' + sys.executable)
+    logging.info(f'running tests under interpreter: {sys.executable}')
     # Do the test after logging at least 1 line, for safety.
     is_tty = is_logging_to_tty()
     if not run_tests(test_dir='test', is_tty=is_tty):
@@ -418,8 +407,8 @@ class MyBuildInstallGreenlet(Command):
       greenlet_file_names = glob.glob(greenlet_file_pattern)
       if (len(greenlet_file_names) != 1 or
           not os.path.isdir(greenlet_file_names[0])):
-        raise DistutilsError('could not find any of: %s' % greenlet_file_pattern)
-      greenlet_so = 'greenlet' + so_ext
+        raise DistutilsError(f'could not find any of: {greenlet_file_pattern}')
+      greenlet_so = f'greenlet{so_ext}'
       copy_file(os.path.join(greenlet_file_names[0], greenlet_so),
                 install_purelib)
       egg_info_dir = (os.path.join(
@@ -465,7 +454,7 @@ class MyBuildExtDirs(Command):
           if key == 'python_version':
             continue
           value = update_dict[key]
-          assert isinstance(value, list) or isinstance(value, tuple)
+          assert isinstance(value, (list, tuple))
           assert hasattr(ext, key), key
           assert isinstance(getattr(ext, key), list)
           # ext.library_dirs.extend(update_dict['library_dirs'])
@@ -515,8 +504,7 @@ class MyBuildSrcSymlinks(Command):
   """
 
   def run(self):
-    src_dirs = self.distribution.symlink_script_src_dirs
-    if src_dirs:
+    if src_dirs := self.distribution.symlink_script_src_dirs:
       for package in self.distribution.packages:  # package = 'syncless'
         package = package.replace('/', '.')
         if '.' not in package:
@@ -537,7 +525,7 @@ Distribution.install_requires = None
 Distribution.zip_safe = None
 
 def symlink(link_to, link_from):
-  log.info('symlinking %s -> %s' % (link_from, link_to))
+  log.info(f'symlinking {link_from} -> {link_to}')
   try:
     st = os.lstat(link_from)
     if stat.S_ISLNK(st.st_mode):
@@ -589,29 +577,28 @@ def HasSymbols(compiler, symbols=(),
   if library_dirs is None:
     library_dirs = []
   mkpath('tmp')
-  fname = 'tmp/check_c_sym_' + symbols[0] + '.c'
-  f = open(fname, "w")
-  if () in includes:
-    assert len(includes) == 1
+  fname = f'tmp/check_c_sym_{symbols[0]}.c'
+  with open(fname, "w") as f:
+    if () in includes:
+      assert len(includes) == 1
+      for symbol in symbols:
+        f.write("extern void %s(void);\n" % symbol)
+    else:
+      for incl in includes:
+        f.write("""#include "%s"\n""" % incl)
+    f.write("int main(int argc, char **argv) {\n")
+    f.write("  int c = %d;\n" % len(symbols))
     for symbol in symbols:
-      f.write("extern void %s(void);\n" % symbol)
-  else:
-    for incl in includes:
-      f.write("""#include "%s"\n""" % incl)
-  f.write("int main(int argc, char **argv) {\n")
-  f.write("  int c = %d;\n" % len(symbols))
-  for symbol in symbols:
-    f.write("  if ((void*)(%s) != (void*)main) --c;\n" % symbol)
-  f.write("  return c;\n");
-  f.write("}\n")
-  f.close()
+      f.write("  if ((void*)(%s) != (void*)main) --c;\n" % symbol)
+    f.write("  return c;\n");
+    f.write("}\n")
   try:
     # Strips leading '/' from fname.
     objects = compiler.compile([fname], include_dirs=include_dirs)
   except CompileError:
     return False
 
-  execfn = os.path.splitext(fname)[0] + '.out'
+  execfn = f'{os.path.splitext(fname)[0]}.out'
   try:
     compiler.link_executable(objects, execfn,
                              libraries=libraries,
@@ -620,8 +607,8 @@ def HasSymbols(compiler, symbols=(),
     return False
   assert '/' in execfn
   assert '\0' not in execfn
-  if 0 != os.system("exec '%s'" % execfn.replace("'", "'\\''")):
-    log.error('running %s failed' % execfn)
+  if os.system("exec '%s'" % execfn.replace("'", "'\\''")) != 0:
+    log.error(f'running {execfn} failed')
     return False
   return True
 
@@ -629,15 +616,12 @@ def HasSymbols(compiler, symbols=(),
 def FindLib(retval, compiler, prefixes, includes, library, symbols,
             link_with_prev_libraries=None):
   for prefix in prefixes:
-    if (prefix and
-        (() in includes or includes ==
-         [include for include in includes if
-          include.startswith('./') or
-          os.path.isfile(prefix + '/include/' + include)]) and
-        ('/' in library or 
-         glob.glob(prefix + '/lib/lib' + library + '.*'))):
-      include_dir = '%s/include' % prefix
-      library_dir = '%s/lib' % prefix
+    if (prefix and (() in includes or includes == [
+        include for include in includes if include.startswith('./')
+        or os.path.isfile(f'{prefix}/include/{include}')
+    ]) and ('/' in library or glob.glob(f'{prefix}/lib/lib{library}.*'))):
+      include_dir = f'{prefix}/include'
+      library_dir = f'{prefix}/lib'
       libraries = [library]
       if link_with_prev_libraries:
         # library_dirs same order as in final retval.
@@ -655,9 +639,9 @@ def FindLib(retval, compiler, prefixes, includes, library, symbols,
                     includes=includes, include_dirs=include_dirs,
                     libraries=libraries, library_dirs=[library_dir]):
         if '/' in library:
-          log.info('found %s as %s' % (os.path.basename(library), library))
+          log.info(f'found {os.path.basename(library)} as {library}')
         else:
-          log.info('found lib%s in %s' % (library, prefix))
+          log.info(f'found lib{library} in {prefix}')
         if include_dir not in retval['include_dirs']:
           retval['include_dirs'].append(include_dir)
         if (library_dir != os.path.dirname(library) and
@@ -665,7 +649,7 @@ def FindLib(retval, compiler, prefixes, includes, library, symbols,
           retval['library_dirs'].append(library_dir)
         retval['is_found'] = True
         return True
-  log.error('library %s not found or not working' % library)
+  log.error(f'library {library} not found or not working')
   return False
 
 def AutoDetect(command_obj):
@@ -715,23 +699,28 @@ def AutoDetect(command_obj):
   asked_for_libevhdns = bool(os.getenv('SYNCLESS_USE_LIBEVHDNS', ''))
   allowed_minievent = bool(os.getenv('SYNCLESS_ALLOW_MINIEVENT', '1'))
 
-  if event_driver in (None, 'libev'):
-    if FindLib(retval=retval, compiler=compiler, prefixes=prefixes,
-               includes=['ev.h'], library='ev', symbols=['ev_once']):
-      if asked_for_libevhdns:
-        if not FindLib(retval=retval, compiler=compiler, prefixes=prefixes,
-            includes=[()], library='evhdns', symbols=['evdns_resolve_ipv4'],
-            link_with_prev_libraries=['ev']):
-          raise LinkError('evhdns not found')
-        retval['define_macros'].append(('COIO_USE_LIBEVHDNS', None))
-        retval['libraries'].append('evhdns')
-      else:
-        retval['define_macros'].append(('COIO_USE_MINIHDNS', None))
-        retval['sources'].append('coio_src/coio_minihdns.c')
-      event_driver = 'libev'
-      retval['is_found'] = True
-      retval['libraries'].append('ev')
-      retval['define_macros'].append(('COIO_USE_LIBEV', None))
+  if event_driver in (None, 'libev') and FindLib(
+      retval=retval,
+      compiler=compiler,
+      prefixes=prefixes,
+      includes=['ev.h'],
+      library='ev',
+      symbols=['ev_once'],
+  ):
+    if asked_for_libevhdns:
+      if not FindLib(retval=retval, compiler=compiler, prefixes=prefixes,
+          includes=[()], library='evhdns', symbols=['evdns_resolve_ipv4'],
+          link_with_prev_libraries=['ev']):
+        raise LinkError('evhdns not found')
+      retval['define_macros'].append(('COIO_USE_LIBEVHDNS', None))
+      retval['libraries'].append('evhdns')
+    else:
+      retval['define_macros'].append(('COIO_USE_MINIHDNS', None))
+      retval['sources'].append('coio_src/coio_minihdns.c')
+    event_driver = 'libev'
+    retval['is_found'] = True
+    retval['libraries'].append('ev')
+    retval['define_macros'].append(('COIO_USE_LIBEV', None))
 
   # TODO(pts): Add support for evhdns here.
   if event_driver in (None, 'libevent2'):
@@ -802,9 +791,9 @@ def AutoDetect(command_obj):
   retval['python_version'] = sys.version
   repr_retval = repr(retval)
   if 'setuptools' in sys.modules and '-q' in sys.argv:
-    log.error('using C env %s' % repr_retval)
+    log.error(f'using C env {repr_retval}')
   else:
-    log.info('using C env %s' % repr_retval)
+    log.info(f'using C env {repr_retval}')
   try:
     old_repr_retval = open('setup.cenv').read()
   except IOError:

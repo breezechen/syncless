@@ -8,7 +8,7 @@ import cherrypy
 
 class HelloWorld(object):
   def index(self, name='World'):
-    return 'Hello, <b>%s</b>!' % name
+    return f'Hello, <b>{name}</b>!'
   index.exposed = True
 
 if __name__ == '__main__':

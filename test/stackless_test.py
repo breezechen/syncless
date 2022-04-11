@@ -56,20 +56,20 @@ class StacklessTest(unittest.TestCase):
 
     def Worker(name, c):
       while True:
-        events.append(name + '.wait')
-        events.append('%s/%s' % (name, c.receive()))
+        events.append(f'{name}.wait')
+        events.append(f'{name}/{c.receive()}')
 
     def Single(name):
-      events.append(name + '.single')
+      events.append(f'{name}.single')
 
     def Cooperative(name):
       while True:
-        events.append(name + '.coop')
+        events.append(f'{name}.coop')
         stackless.schedule()
 
     def CooperativeRemove(name):
       while True:
-        events.append(name + '.corm')
+        events.append(f'{name}.corm')
         stackless.schedule_remove()
 
     def Run():

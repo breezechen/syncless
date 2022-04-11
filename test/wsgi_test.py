@@ -61,7 +61,7 @@ def SplitHttpResponses(data):
   Returns:
     List of strings (individual HTTP responses).
   """
-  return ['HTTP/1.' + item for item in data.split('HTTP/1.')[1:]]
+  return [f'HTTP/1.{item}' for item in data.split('HTTP/1.')[1:]]
 
 
 class WsgiTest(unittest.TestCase):
@@ -73,7 +73,7 @@ class WsgiTest(unittest.TestCase):
 
   def AssertHelloResponse(self, head, body, http_version='1.0'):
     self.assertEqual('Hello, World!', body)
-    self.assertEqual('HTTP/%s 200 OK' % http_version, head['Status'])
+    self.assertEqual(f'HTTP/{http_version} 200 OK', head['Status'])
     self.assertEqual('13', head['Content-Length'])
     self.assertTrue('syncless' in head['Server'].lower(), head['Server'])
     self.assertEqual(TEST_DATE, head['Date'])
@@ -82,7 +82,7 @@ class WsgiTest(unittest.TestCase):
   def AssertAnswerResponse(self, head, body, http_version='1.0',
                            is_new_date=False):
     self.assertEqual('Forty-two.', body)
-    self.assertEqual('HTTP/%s 200 OK' % http_version, head['Status'])
+    self.assertEqual(f'HTTP/{http_version} 200 OK', head['Status'])
     self.assertEqual('10', head['Content-Length'])
     self.assertTrue('syncless' in head['Server'].lower(), head['Server'])
     if is_new_date:
@@ -90,13 +90,13 @@ class WsgiTest(unittest.TestCase):
       self.assertTrue(head['Date'].endswith(' GMT'), head['Date'])
     else:
       self.assertEqual(TEST_DATE, head['Date'])
-    
+
     self.assertEqual('text/plain', head['Content-Type'])
 
   def AssertSaveResponse(self, head, body, http_version='1.0',
                          is_new_date=False, msg='FOO\n'):
     self.assertEqual(msg, body)
-    self.assertEqual('HTTP/%s 200 OK' % http_version, head['Status'])
+    self.assertEqual(f'HTTP/{http_version} 200 OK', head['Status'])
     self.assertEqual(str(len(msg)), head['Content-Length'])
     self.assertTrue('syncless' in head['Server'].lower(), head['Server'])
     if is_new_date:
@@ -104,7 +104,7 @@ class WsgiTest(unittest.TestCase):
       self.assertTrue(head['Date'].endswith(' GMT'), head['Date'])
     else:
       self.assertEqual(TEST_DATE, head['Date'])
-    
+
     self.assertEqual('text/plain', head['Content-Type'])
 
   def testSingleRequestWithoutCr(self):

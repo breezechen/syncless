@@ -93,11 +93,7 @@ def main():
   #  print >>sys.stderr, row
   assert list(cursor) == [(1,)]
 
-  if len(sys.argv) > 1:
-    num_iterations = int(sys.argv)
-  else:
-    num_iterations = 1000
-
+  num_iterations = int(sys.argv) if len(sys.argv) > 1 else 1000
   progress_channel = stackless.channel()
   progress_channel.preference = 1  # Prefer the sender.
   stackless.tasklet(Worker)(db_conn, num_iterations, progress_channel)

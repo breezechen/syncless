@@ -84,8 +84,7 @@ def MainLoop():
       timeout = None
     else:
       timeout = deadline - time.time()
-      if timeout < 0:
-        timeout = 0
+      timeout = max(timeout, 0)
     select.select(read_fds, write_fds, (), timeout)
     # TODO(pts): Don't resume a task (with task.next()) in the next
     # iteration if its event hasn't happened.

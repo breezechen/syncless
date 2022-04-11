@@ -28,7 +28,7 @@ class Lprng(object):
 
 class MainHandler(tornado.web.RequestHandler):
   def get(self):
-    print >>sys.stderr, 'info: connection from %s' % self.request.remote_ip
+    (print >>sys.stderr, f'info: connection from {self.request.remote_ip}')
     self.write('<a href="/0">start at 0</a><p>Hello, World!\n')
 
 class NumberHandler(tornado.web.RequestHandler):

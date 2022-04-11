@@ -52,7 +52,7 @@ except ImportError:
 
 # This is to make `from syncless.best_greenlet.greenlet import greenlet
 # work, where the rightmost greenlet is our greenlet.greenlet below.
-__import__('sys').modules[__name__ + '.greenlet'] = greenlet
+__import__('sys').modules[f'{__name__}.greenlet'] = greenlet
 greenlet.gevent_hub_main = gevent_hub_main
 # Not setting greenlet.greenlet.gevent_hub_main, because the regular
 # greenlet.greenlet is an extension type (class), so it wouldn't work.

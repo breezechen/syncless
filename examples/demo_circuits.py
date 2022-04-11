@@ -29,13 +29,12 @@ class Lprng(object):
 class Root(Controller):
   def index(self, num=None):
     print >>sys.stderr, 'info: got connection'  # TODO(pts): Where from?
-    if num is not None:
-      num = int(num)
-      next_num = Lprng(num).next()
-      return ('<a href="/?num=%d">continue with %d</a>\n' %
-              (next_num, next_num))
-    else:
+    if num is None:
       return '<a href="/?num=0">start at 0</a><p>Hello, World!\n'
+    num = int(num)
+    next_num = Lprng(num).next()
+    return ('<a href="/?num=%d">continue with %d</a>\n' %
+            (next_num, next_num))
 
 
 def ProgressReporter(delta_sec):

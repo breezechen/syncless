@@ -15,10 +15,9 @@ def WsgiApplication(env, start_response):
   start_response("200 OK", [('Content-Type', 'text/html')])
   if env['PATH_INFO'] in ('', '/'):
     return ['<a href="/0">start at 0</a><p>Hello, World!\n']
-  else:
-    num = int(env['PATH_INFO'][1:])
-    next_num = lprng.Lprng(num).next()
-    return ['<a href="/%d">continue with %d</a>\n' % (next_num, next_num)]
+  num = int(env['PATH_INFO'][1:])
+  next_num = lprng.Lprng(num).next()
+  return ['<a href="/%d">continue with %d</a>\n' % (next_num, next_num)]
 
 if __name__ == '__main__':
   server = eventlet.api.tcp_listener(('127.0.0.1', 8080), backlog=128)

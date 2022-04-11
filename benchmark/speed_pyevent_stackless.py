@@ -26,10 +26,7 @@ def SetFdBlocking(fd, is_blocking):
   if hasattr(fd, 'fileno'):
     fd = fd.fileno()
   old = fcntl.fcntl(fd, fcntl.F_GETFL)
-  if is_blocking:
-    value = old & ~os.O_NONBLOCK
-  else:
-    value = old | os.O_NONBLOCK
+  value = old & ~os.O_NONBLOCK if is_blocking else old | os.O_NONBLOCK
   if old != value:
     fcntl.fcntl(fd, fcntl.F_SETFL, value)
   return bool(old & os.O_NONBLOCK)
@@ -141,10 +138,7 @@ def Handler(cs, csaddr):
   # Please note that an assertion here aborts the server.
   i = head.find('\n')
   assert i > 0, (head,)
-  if head[i - 1] == '\r':
-    line1 = head[:i - 1]
-  else:
-    line1 = head[:i]
+  line1 = head[:i - 1] if head[i - 1] == '\r' else head[:i]
   items = line1.split(' ')
   assert 3 == len(items)
   assert items[2] in ('HTTP/1.0', 'HTTP/1.1')

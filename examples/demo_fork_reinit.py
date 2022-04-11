@@ -48,8 +48,7 @@ def RunWorker(sock_in, sock_out, max_size, progress_str, select_function):
     f_out.write(data)
     f_out.flush()
     while sock_in and select_function([sock_in], (), (), 0)[0]:
-      data = sock_in.recv(8192)
-      if data:
+      if data := sock_in.recv(8192):
         byte_count += len(data)
         line_count += data.count('\n')
       else:
@@ -57,7 +56,7 @@ def RunWorker(sock_in, sock_out, max_size, progress_str, select_function):
     sys.stdout.write(progress_str)
     sys.stdout.flush()
   sock_out.shutdown(1)  # Shut down for writing.
-  sys.stdout.write('/' + progress_str)
+  sys.stdout.write(f'/{progress_str}')
   sys.stdout.flush()
   if sock_in:  # Read the rest.
     while True:
@@ -68,7 +67,7 @@ def RunWorker(sock_in, sock_out, max_size, progress_str, select_function):
       line_count += data.count('\n')
   assert byte_count == expected_byte_count
   assert line_count == expected_line_count
-  sys.stdout.write('$' + progress_str)
+  sys.stdout.write(f'${progress_str}')
   sys.stdout.flush()
 
 if __name__ == '__main__':
@@ -82,9 +81,7 @@ if __name__ == '__main__':
   # So we don't lose characters when writing the output to a file.
   EnableAppendMode(sys.stdout)
   EnableAppendMode(sys.stderr)
-  pid = os.fork()
-  # signal.alarm(10) won't help here.
-  if pid:  # Parent.
+  if pid := os.fork():
     try:
       a = a.dup()
       b = b.dup()

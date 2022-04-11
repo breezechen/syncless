@@ -369,9 +369,9 @@ class greenlet(object):
         if target is current:
           return args[0]
         target._tasklet.tempval = args[0]
+      elif target is current:
+        return ()
       else:
-        if target is current:
-          return ()
         target._tasklet.tempval = ()
     del args, kwargs    # Save memory.
 
@@ -388,10 +388,6 @@ class greenlet(object):
       retval = target.pop()()
     except TaskletExit:
       return _handle_tasklet_exit_in_switch(*sys.exc_info())
-    except:
-      stackless.current.next.remove()
-      assert current._tasklet is stackless.current
-      raise
     stackless.current.next.remove()
     assert current._tasklet is stackless.current
     return retval

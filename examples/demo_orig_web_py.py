@@ -12,7 +12,7 @@ class hello:
         if not name: 
             name = 'world'
         web.header('Content-Type', 'text/html; charset=UTF-8')
-        return 'Hello, <b>' + name + '</b>!'
+        return f'Hello, <b>{name}</b>!'
 
 if __name__ == "__main__":
   app.run()

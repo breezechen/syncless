@@ -26,14 +26,11 @@ def DoRequest(sub_url='/'):
 if __name__ == '__main__':
   res = DoRequest('/')
   assert RESPONSE_RE.match(res), repr(res)
-  if len(sys.argv) > 1:
-    c = int(sys.argv[1:])
-  else:
-    c = 10000
+  c = int(sys.argv[1:]) if len(sys.argv) > 1 else 10000
   print >>sys.stderr, 'doing %d fetches' % c
   num = 0
-  for i in xrange(c):
-    res = DoRequest('/%s' % num)
+  for _ in xrange(c):
+    res = DoRequest(f'/{num}')
     match = RESPONSE_RE.match(res)
     assert match
     match = NEXT_RE.search(res[match.end(0):])

@@ -120,9 +120,8 @@ class RemoteConsole(code.InteractiveConsole):
       line = ''
     if line:
       return line.rstrip('\r\n')
-    else:
-      self.had_eof = True
-      raise EOFError
+    self.had_eof = True
+    raise EOFError
 
   def write(self, msg):
     try:
@@ -245,8 +244,8 @@ def RemoteConsoleListener(bind_addr, bind_port):
       'RemoteConsole accepting on %r' % (server_socket.getsockname(),))
   baddr = server_socket.getsockname()
   logging.info(
-      'connect with: %s -m syncless.backdoor_client %s %s' %
-      (sys.executable, baddr[0], baddr[1]))
+      f'connect with: {sys.executable} -m syncless.backdoor_client {baddr[0]} {baddr[1]}'
+  )
   logging.info('fallback connect with: telnet %s %s' % baddr[:2])
   logging.info('press Ctrl-<C> to abort the app with the RemoteConsole')
   server_socket.listen(16)
@@ -295,14 +294,8 @@ def main(argv):
     sys.exit(1)
   logging.root.setLevel(logging.INFO)
   logging.BASIC_FORMAT = '[%(created)f] %(levelname)s %(message)s'
-  if len(argv) > 2:
-    bind_addr = argv[1]
-  else:
-    bind_addr = '127.0.0.1'
-  if len(argv) > 1:
-    bind_port = int(argv[-1])
-  else:
-    bind_port = 5454
+  bind_addr = argv[1] if len(argv) > 2 else '127.0.0.1'
+  bind_port = int(argv[-1]) if len(argv) > 1 else 5454
   RemoteConsoleListener(bind_addr, bind_port)
 
 

@@ -16,7 +16,7 @@ class MainPage(webapp.RequestHandler):
 class HelloPage(webapp.RequestHandler):
   def post(self):
     self.response.headers['Content-Type'] = 'text/plain'
-    self.response.out.write('Hello, %s' % self.request.get('name'))
+    self.response.out.write(f"Hello, {self.request.get('name')}")
 
 application = webapp.WSGIApplication([
   ('/', MainPage),

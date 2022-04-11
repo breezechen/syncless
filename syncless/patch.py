@@ -239,15 +239,12 @@ def patch_tornado():
       self.fd_to_event[fd] = self.wakeup_info.create_event(fd, events)
 
     def modify(self, fd, events):
-      # A combination of unregister + register.
-      event = self.fd_to_event.pop(fd, None)
-      if event:
+      if event := self.fd_to_event.pop(fd, None):
         event.delete()
       self.fd_to_event[fd] = self.wakeup_info.create_event(fd, events)
 
     def unregister(self, fd):
-      event = self.fd_to_event.pop(fd, None)
-      if event:
+      if event := self.fd_to_event.pop(fd, None):
         event.delete()
 
     def poll(self, timeout):
@@ -346,8 +343,6 @@ def patch_concurrence():
           pass
         except KeyboardInterrupt:
           raise
-        except:
-          logging.exception('unhandled exception in dispatch schedule')
         for callback, evtype in coio.get_swap_concurrence_triggered():
           try:
             # The callback can extend coio.get_concurrence_triggered().
@@ -355,9 +350,6 @@ def patch_concurrence():
             callback(evtype)
           except TaskletExit:
             raise
-          except:
-            logging.exception('unhandled exception in dispatch event callback')
-            # TODO(pts): Push back to coio.get_concurrence_triggered().
     finally:
       main_tasklets.remove(stackless.current)
 
@@ -884,9 +876,6 @@ def patch_eventlet():
             listeners[0](fileno)
         except self.SYSTEM_EXCEPTIONS:
           raise
-        except:
-          self.squelch_exception(fileno, sys.exc_info())
-          clear_sys_exc_info()
 
   hubs.use_hub(SynclessHub)
   assert SynclessHub is hubs._threadlocal.Hub
@@ -905,8 +894,7 @@ def patch_stderr():
   from syncless import coio
   if not isinstance(sys.stderr, coio.nbfile):
     new_stderr = coio.fdopen(sys.stderr.fileno(), 'w', bufsize=0, do_close=0)
-    logging = sys.modules.get('logging')
-    if logging:
+    if logging := sys.modules.get('logging'):
       for handler in logging.root.handlers:
         stream = getattr(handler, 'stream', None)
         if stream is sys.stderr:
@@ -923,12 +911,8 @@ def patch_stdin_and_stdout():
   # !! patch stdin and stdout separately (for sys.stdout.fileno())
   if (not isinstance(sys.stdin,  coio.nbfile) or
       not isinstance(sys.stdout, coio.nbfile)):
-    # Unfortunately it's not possible to get the current buffer size from a
-    # Python file object, so we just set up the defaults here.
-    write_buffer_limit = 8192
     import os
-    if os.isatty(sys.stdout.fileno()):
-      write_buffer_limit = 1  # Set up line buffering.
+    write_buffer_limit = 1 if os.isatty(sys.stdout.fileno()) else 8192
     new_stdinout = coio.nbfile(sys.stdin.fileno(), sys.stdout.fileno(),
                                write_buffer_limit=write_buffer_limit,
                                do_close=0)

@@ -84,10 +84,7 @@ def NewReadLine(in_fd, out_fd):
   def NonTerminalReadLine(prompt=''):
     xout.write(prompt)
     xout.flush()
-    # Coroutines are scheduled while xin.readline() is reading the rest of
-    # its line.
-    line = xin.readline()
-    if line:
+    if line := xin.readline():
       return line.rstrip('\n')
     raise EOFError
 
@@ -225,17 +222,6 @@ def wrap_tasklet(function):
       function(*args, **kwargs)
     except TaskletExit:
       pass
-    except:
-      newlines = '\n\n'
-      if just_after_prompt:
-        newlines = '\n'
-      BlockingWriteAll(
-          2, '\n%sException terminated tasklet, resuming syncless.console.%s'
-          % (''.join(traceback.format_exc()), newlines))
-      if just_after_prompt:  # Display the prompt again.
-        out_fd, prompt = just_after_prompt
-        BlockingWriteAll(out_fd, prompt)
-      coio.insert_after_current(console_tasklet)
 
   return coio.stackless.tasklet(TaskletWrapper)
 

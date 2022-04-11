@@ -86,11 +86,7 @@ def main():
   assert cursor.fetchall() == [(1,)]
   cursor.close()  # geventmysql requires this.
 
-  if len(sys.argv) > 1:
-    num_iterations = int(sys.argv)
-  else:
-    num_iterations = 1000
-
+  num_iterations = int(sys.argv) if len(sys.argv) > 1 else 1000
   progress_channel = stackless.channel()
   progress_channel.preference = 1  # Prefer the sender.
   stackless.tasklet(Worker)(db_conn, num_iterations, progress_channel)

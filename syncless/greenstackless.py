@@ -198,31 +198,6 @@ def _tasklet_wrapper(tasklet_obj, switch_back_ary, args, kwargs):
   except TaskletExit:  # Let it pass silently.
     assert tasklet_obj is current
     _remove(current)
-  except:
-    exc_info = sys.exc_info()
-    assert tasklet_obj is current
-    assert tasklet_obj is not main
-    if tasklet_obj.next is tasklet_obj:  # Last runnable tasklet.
-      if main._channel_weak:
-        if main._channel_weak().balance < 0:
-          main.tempval = bomb(StopIteration, 'the main tasklet is receiving '
-                              'without a sender available.')
-        else:
-          main.tempval = bomb(StopIteration, 'the main tasklet is sending '
-                              'without a receiver available.')
-        _remove(current)  # And insert main.
-        # If runnables is empty, let the error be ignored here, and
-        # so a StopIteration being raised in the main tasklet, see
-        # LazyWorker in StacklessTest.testLastchannel.
-      else:
-        _remove(current)  # And insert main.
-        main.tempval = bomb(*exc_info)
-    else:  # Make main current.
-      if main._channel_weak:
-        _remove_from_channel(main)
-      _insert_after_current(main)
-      _remove(current)
-      main.tempval = bomb(*exc_info)
   finally:
     # This make sure that flow will continue in the correct greenlet,
     # e.g. the next in the runnables list.
@@ -490,40 +465,39 @@ def _remove_from_channel(tasklet_obj):
 
   Also set tasklet_obj.next = tasklet_obj.prev = None.
   """
-  if tasklet_obj._channel_weak:
-    channel_obj = tasklet_obj._channel_weak()
-    assert channel_obj
-    if tasklet_obj is channel_obj._queue_last:
-      channel_obj._queue_last = None
-      if tasklet_obj is channel_obj.queue:
-        channel_obj.queue = tasklet_obj.next
-      else:
-        tasklet_obj.prev.next = None
-    elif tasklet_obj is channel_obj.queue:
+  if not tasklet_obj._channel_weak:
+    return
+  channel_obj = tasklet_obj._channel_weak()
+  assert channel_obj
+  if tasklet_obj is channel_obj._queue_last:
+    channel_obj._queue_last = None
+    if tasklet_obj is channel_obj.queue:
       channel_obj.queue = tasklet_obj.next
-      if tasklet_obj.next:
-        tasklet_obj.next.prev = None
     else:
-      tasklet1 = channel_obj.queue
-      assert tasklet1, 'empty channel'
-      tasklet2 = tasklet1.next
-      while tasklet2:
-        if tasklet2 is tasklet_obj:
-          break
-        tasklet1 = tasklet2
-        tasklet2 = tasklet2.next
-      assert tasklet2, 'tasklet not found in channel'
-      tasklet1.next = tasklet_obj.next
-      tasklet_obj.next.prev = tasklet1  # tasklet_obj.next is not None here.
-    tasklet_obj.next = tasklet_obj.prev = None
-    tasklet_obj._channel_weak = None
+      tasklet_obj.prev.next = None
+  elif tasklet_obj is channel_obj.queue:
+    channel_obj.queue = tasklet_obj.next
+    if tasklet_obj.next:
+      tasklet_obj.next.prev = None
+  else:
+    tasklet1 = channel_obj.queue
+    assert tasklet1, 'empty channel'
+    tasklet2 = tasklet1.next
+    while tasklet2 and tasklet2 is not tasklet_obj:
+      tasklet1 = tasklet2
+      tasklet2 = tasklet2.next
+    assert tasklet2, 'tasklet not found in channel'
+    tasklet1.next = tasklet_obj.next
+    tasklet_obj.next.prev = tasklet1  # tasklet_obj.next is not None here.
+  tasklet_obj.next = tasklet_obj.prev = None
+  tasklet_obj._channel_weak = None
 
-    if channel_obj.balance < 0:
-      channel_obj.balance += 1
-    elif channel_obj.balance > 0:
-      channel_obj.balance -= 1
-    else: 
-      assert 0, 'tasklet on zero-balance channel'
+  if channel_obj.balance < 0:
+    channel_obj.balance += 1
+  elif channel_obj.balance > 0:
+    channel_obj.balance -= 1
+  else: 
+    assert 0, 'tasklet on zero-balance channel'
 
 
 def _receive(channel_obj, preference):

@@ -111,7 +111,7 @@ class NbfileTest(unittest.TestCase):
     self.AssertReadLineWait(ks, ks, len(ks))
     self.AssertReadLineWait('\n', '\n')
     ksn = ks + '\n'
-    self.AssertReadLineWait(ksn, ksn + 'foo')
+    self.AssertReadLineWait(ksn, f'{ksn}foo')
     self.AssertReadLineWait('foo', '', 3)
 
   def testTwoReaders(self):

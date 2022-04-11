@@ -89,24 +89,21 @@ def upload(file, project_name, user_name, password, summary, labels=None):
 
   content_type, body = encode_upload_request(form_fields, file)
 
-  upload_host = '%s.googlecode.com' % project_name
+  upload_host = f'{project_name}.googlecode.com'
   upload_uri = '/files'
-  auth_token = base64.b64encode('%s:%s'% (user_name, password))
+  auth_token = base64.b64encode(f'{user_name}:{password}')
   headers = {
-    'Authorization': 'Basic %s' % auth_token,
-    'User-Agent': 'Googlecode.com uploader v0.9.4',
-    'Content-Type': content_type,
-    }
+      'Authorization': f'Basic {auth_token}',
+      'User-Agent': 'Googlecode.com uploader v0.9.4',
+      'Content-Type': content_type,
+  }
 
   server = httplib.HTTPSConnection(upload_host)
   server.request('POST', upload_uri, body, headers)
   resp = server.getresponse()
   server.close()
 
-  if resp.status == 201:
-    location = resp.getheader('Location', None)
-  else:
-    location = None
+  location = resp.getheader('Location', None) if resp.status == 201 else None
   return resp.status, resp.reason, location
 
 
@@ -126,33 +123,28 @@ def encode_upload_request(fields, file_path):
 
   # Add the metadata about the upload first
   for key, value in fields:
-    body.extend(
-      ['--' + BOUNDARY,
-       'Content-Disposition: form-data; name="%s"' % key,
-       '',
-       value,
-       ])
+    body.extend([
+        f'--{BOUNDARY}',
+        'Content-Disposition: form-data; name="%s"' % key,
+        '',
+        value,
+    ])
 
   # Now add the file itself
   file_name = os.path.basename(file_path)
-  f = open(file_path, 'rb')
-  file_content = f.read()
-  f.close()
-
-  body.extend(
-    ['--' + BOUNDARY,
-     'Content-Disposition: form-data; name="filename"; filename="%s"'
-     % file_name,
-     # The upload server determines the mime-type, no need to set it.
-     'Content-Type: application/octet-stream',
-     '',
-     file_content,
-     ])
-
-  # Finalize the form body
-  body.extend(['--' + BOUNDARY + '--', ''])
-
-  return 'multipart/form-data; boundary=%s' % BOUNDARY, CRLF.join(body)
+  with open(file_path, 'rb') as f:
+    file_content = f.read()
+  body.extend([
+      f'--{BOUNDARY}',
+      'Content-Disposition: form-data; name="filename"; filename="%s"' %
+      file_name,
+      'Content-Type: application/octet-stream',
+      '',
+      file_content,
+      f'--{BOUNDARY}--',
+      '',
+  ])
+  return f'multipart/form-data; boundary={BOUNDARY}', CRLF.join(body)
 
 
 def upload_find_auth(file_path, project_name, summary, labels=None,

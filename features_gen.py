@@ -30,7 +30,7 @@ def main(argv):
   aspect = None
   comments = []
   comment_numbers = {}
-  print >>sys.stderr, 'info: reading %s' % input_filename
+  (print >>sys.stderr, f'info: reading {input_filename}')
   for line in open(input_filename):
     line = line.rstrip()
     if not line or line.startswith('#'):
@@ -61,9 +61,9 @@ def main(argv):
     assert evalclass in ('yes', 'yes++', 'yes--', 'no', 'no++'), (
         aspect, evaluation)
     if evalclass.endswith('++'):
-      evalclass = evalclass[:-2] + 'pp'
+      evalclass = f'{evalclass[:-2]}pp'
     elif evalclass.endswith('--'):
-      evalclass = evalclass[:-2] + 'mm'
+      evalclass = f'{evalclass[:-2]}mm'
     aspects[-1][1][subject] = (evaluation, evalclass)
   for aspect, evaluations in aspects:
     missing_subjects = subjects_set.difference(evaluations)
@@ -72,7 +72,7 @@ def main(argv):
     assert ('&' not in aspect or 
             '&' not in re.sub(r'&#?[-a-z0-9]+;', '', aspect)), aspect
 
-  print >>sys.stderr, 'info: generating %s' % output_filename
+  (print >>sys.stderr, f'info: generating {output_filename}')
   output = ['<style type="text/css">\n'
             'table.features              { padding: 0px; border-collapse: collapse; }\n'
             'table.features td           { color:#000000; border: 1px solid black; padding: 1px; border-collapse: collapse; }\n'
@@ -85,12 +85,10 @@ def main(argv):
             'table.features td.nopp      { background: #DD2200; }\n'
             '</style>\n'
             '<table class=features><thead><tr>', '<td></td>']
-  for subject in subjects:
-    output.append('<td class=subject>%s</td>' % subject)
+  output.extend(f'<td class=subject>{subject}</td>' for subject in subjects)
   output.append('</tr></thead><tbody>\n')
   for aspect, evaluations in aspects:
-    output.append('<tr>')
-    output.append('<td>%s</td>' % aspect)
+    output.extend(('<tr>', f'<td>{aspect}</td>'))
     for subject in subjects:
       evaluation, evalclass = evaluations[subject]
       if ',' in evaluation:
@@ -112,12 +110,10 @@ def main(argv):
   if comments:
     # TODO(pts): Highlight comment when clicked or hovered / onmouseover.
     output.append('<p>Comments:\n')
-    i = 1
-    for comment in comments:
+    for i, comment in enumerate(comments, start=1):
       comment = re.sub(r'(https?://[^"\s!,;]+)', '<a href="\\1">[link]</a>',
                        comment)
       output.append('<br><a name="comment%s"><b>%s)</b></a> %s\n' % (i, i, comment))
-      i += 1
   f = open(output_filename, 'w')
   try:
     f.write(''.join(output))

@@ -74,7 +74,7 @@ if __name__ == '__main__':
     elif arg in ('--no-psyco', '+p'):
       use_psyco = False
     else:
-      assert 0, 'invalid arg: %s' % arg
+      assert 0, f'invalid arg: {arg}'
 
   if use_http is None:
     use_http = not use_https
@@ -89,7 +89,6 @@ if __name__ == '__main__':
       logging.info('using psyco')
     except ImportError:
       logging.info('psyco not available')
-      pass
   else:
     logging.info('not using psyco')
 

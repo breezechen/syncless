@@ -162,8 +162,7 @@ class RequestHandler(asynchat.async_chat,
 
     def handle_data(self):
         """Class to override"""
-        f = self.send_head()
-        if f:
+        if f := self.send_head():
             self.copyfile(f, self.wfile)
 
     def handle_request_line(self):
@@ -175,7 +174,7 @@ class RequestHandler(asynchat.async_chat,
 
         if self.command in ['GET','HEAD']:
             # if method is GET or HEAD, call do_GET or do_HEAD and finish
-            method = "do_"+self.command
+            method = f"do_{self.command}"
             if hasattr(self,method):
                 getattr(self,method)()
                 self.finish()
@@ -183,7 +182,7 @@ class RequestHandler(asynchat.async_chat,
             # if method is POST, call prepare_POST, don't finish yet
             self.prepare_POST()
         else:
-            self.send_error(501, "Unsupported method (%s)" %self.command)
+            self.send_error(501, f"Unsupported method ({self.command})")
 
     def end_headers(self):
         """Send the blank line ending the MIME headers, send the buffered

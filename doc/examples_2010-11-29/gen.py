@@ -2,14 +2,14 @@
 
 def SquaresUpto(n):
   i = 1
-  while i * i <= n:
-    yield i * i
+  while i**2 <= n:
+    yield i**2
     i += 1
 
 def CubesUpto(n):
   i = 1
-  while i * i * i <= n:
-    yield i * i * i
+  while i**2 * i <= n:
+    yield i**2 * i
     i += 1
 
 def Double(iter):
